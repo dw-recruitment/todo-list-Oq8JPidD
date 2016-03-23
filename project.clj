@@ -5,7 +5,8 @@
                  [kosmos "0.0.4"]
                  [kosmos/kosmos-web "0.0.2"]
                  [hiccup "1.0.5"]
-                 [kosmos/kosmos-hsqldb-server "0.0.1"]]
+                 [kosmos/kosmos-hsqldb-server "0.0.1"]
+                 [ring/ring-devel "1.4.0"]]
   :main ^:skip-aot psdm.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}})

@@ -1,7 +1,9 @@
 (ns psdm.server
   (:require [hiccup.core :refer :all]
+            [psdm.config :as config]
             [ring.middleware.content-type :as content-type]
-            [ring.middleware.resource :as resource]))
+            [ring.middleware.resource :as resource]
+            [ring.middleware.reload :as reload]))
 
 (defn handler [_]
   {:status  200
@@ -23,6 +25,9 @@
                      [:td]
                      [:td "Best viewed with:" [:br] [:img {:src "/assets/images/netnow3.gif"}]]]]])})
 
-(def app (-> handler
-             (resource/wrap-resource "public")
-             content-type/wrap-content-type))
+(def app (let [handler (-> handler
+                           (resource/wrap-resource "public")
+                           content-type/wrap-content-type)]
+           (if (= "development" config/*env*)
+             (reload/wrap-reload handler)
+             handler)))
