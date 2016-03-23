@@ -1,0 +1,5 @@
+{:web
+ {:kosmos/init :kosmos.web/RingJettyComponent
+  :port 5000
+  :ring-app psdm.server/app
+  :join? false}}

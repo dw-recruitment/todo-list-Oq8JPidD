@@ -3,6 +3,7 @@
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [compojure "1.5.0"]
                  [kosmos "0.0.4"]
+                 [kosmos/kosmos-web "0.0.2"]
                  [kosmos/kosmos-hsqldb-server "0.0.1"]]
   :main ^:skip-aot psdm.core
   :target-path "target/%s"
