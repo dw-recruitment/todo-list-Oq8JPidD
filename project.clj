@@ -9,4 +9,5 @@
                  [ring/ring-devel "1.4.0"]]
   :main ^:skip-aot psdm.core
   :target-path "target/%s"
-  :profiles {:uberjar {:aot :all}})
+  :profiles {:uberjar {:aot :all}
+             :dev     {:dependencies [[ring/ring-mock "0.3.0"]]}})
