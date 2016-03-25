@@ -33,7 +33,17 @@
             [:td "Best viewed with:" [:br] [:img {:src "/assets/images/netnow3.gif"}]]]]))
 
 (defn about [req]
-  (layout req "About"))
+  (layout req "About"
+          [:p "Imagine a world in which you could write down the things you "
+           "have to do... on a computer. Well, you don't have to imagine it "
+           "any longer! The " [:em "Productivity Self Delusion Machine"]
+           " enables you to "
+           "to write down any task! Need to remember to vote? Make a task. "
+           "What about doing the dishes? Make a task. And the best part, "
+           "you get that feeling of accomplishment just from writing down "
+           "that thing you should be doing right now. That's right, if you "
+           "just keep writing down tasks, you can feel productive without "
+           "having to do anything at all!"]))
 
 (defn not-found [req]
   (layout req "Not Found!"))
