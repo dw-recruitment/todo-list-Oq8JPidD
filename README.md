@@ -9,7 +9,7 @@ A tool to facilitate one's self delusion of being productive.
 From the project root, run the following:
 
 ```
-lein run
+./script/server
 ```
 
 Then navigate to [http://localhost:5000](http://localhost:5000).
