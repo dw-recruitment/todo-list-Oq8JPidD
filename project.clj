@@ -6,8 +6,11 @@
                  [kosmos/kosmos-web "0.0.2"]
                  [hiccup "1.0.5"]
                  [kosmos/kosmos-hsqldb-server "0.0.1"]
-                 [ring/ring-devel "1.4.0"]]
+                 [kosmos/kosmos-hikari "0.0.1"]
+                 [ring/ring-devel "1.4.0"]
+                 [ragtime "0.5.3"]]
   :main ^:skip-aot psdm.core
   :target-path "target/%s"
+  :aliases {"db" ["run" "-m" "psdm.migration"]}
   :profiles {:uberjar {:aot :all}
              :dev     {:dependencies [[ring/ring-mock "0.3.0"]]}})

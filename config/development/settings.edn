@@ -2,4 +2,30 @@
  {:kosmos/init :kosmos.web/RingJettyComponent
   :port 5000
   :ring-app psdm.server/app
-  :join? false}}
+  :join? false}
+
+ :hsqldb-server
+ {:kosmos/init :kosmos.server/HsqlDbServerComponent
+  :port        "9005"
+  :database    "file:target/localdatabase"
+  :dbname      "localdatabase"}
+
+ :pool {:auto-commit true
+        :maximum-pool-size 2
+        :pool-name "test-pool"}
+
+ :db
+ {:kosmos/init     :kosmos.db/DbComponent
+  :kosmos/requires [:hsqldb-server :pool]
+  :classname       "org.hsqldb.jdbc.JDBCDriver"
+  :subprotocol     "hsqldb"
+  :protocol        "hsql"
+  :subname         "hsql://localhost:9005/localdatabase"
+  :host            "localhost"
+  :port            9005
+  :database        "localdatabase"
+  :user            "SA"
+  :password        ""}
+
+ :migration
+ {:kosmos/requires [:db]}}
