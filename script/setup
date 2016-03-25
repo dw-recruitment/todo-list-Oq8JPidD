@@ -1,0 +1,9 @@
+#/usr/bin/env bash
+set -e
+
+# http://stackoverflow.com/a/246128/1541713
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+PROJECT_ROOT="$DIR/.."
+
+(cd "$PROJECT_ROOT" && lein clean && lein db rebuild)

@@ -21,3 +21,9 @@
        ;; start the system, this will add a shutdown hook to stop
        ;; the system as well
        kosmos/start))
+
+(defn not-production? []
+  ;; when it comes to checking for production, it's better to check that we
+  ;; are in a non-production environment. This avoids issues like "production"
+  ;; being mispelled and then terrible things happening as a result.
+  (#{"development" "test"} *env*))

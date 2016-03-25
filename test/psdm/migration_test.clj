@@ -34,6 +34,10 @@
        (map str/lower-case)
        (into #{})))
 
+(defn get-data [db]
+  (->> "SELECT * FROM todo_items"
+       (jdbc/query db)))
+
 (deftest test-migrate-rollback
   (with-redefs [migrations-resources-dir "test-migrations"]
     (let [system (-> test-settings kosmos/map->system kosmos/start)
@@ -41,11 +45,17 @@
           db (:db migration)]
       (try
         (testing "migrate runs any new migrations"
-          (is (not ((get-tables db) "foo")))
+          (is (not ((get-tables db) "todo_items")))
           (migrate migration)
-          (is ((get-tables db) "foo")))
+          (is ((get-tables db) "todo_items"))
+          (testing "but does not load data"
+            (is (not (seq (get-data db))))))
         (testing "rollback backs out last migration"
           (rollback migration)
-          (is (not ((get-tables db) "foo"))))
+          (is (not ((get-tables db) "todo_items"))))
+        (testing "rebuild recreates the database and populates it"
+          (rebuild migration)
+          (is ((get-tables db) "todo_items"))
+          (is (seq (get-data db))))
         (finally
           (kosmos/stop system))))))
