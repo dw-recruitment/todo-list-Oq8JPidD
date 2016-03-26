@@ -7,6 +7,9 @@
             [clojure.set :as set]
             [clojure.java.jdbc :as jdbc]))
 
+(defn build-empty-item []
+  {:status :todo})
+
 (def list-defaults {:limit 100 :offset 0})
 
 (def integer->status {0 :todo
@@ -24,6 +27,7 @@
   (let [opts (merge list-defaults opts)
         sql-and-params (-> (select :*)
                            (from :todo_items)
+                           (order-by [:created_at :asc])
                            sql/format)]
     ;; TODO: paginate
     (->> sql-and-params
@@ -46,7 +50,8 @@
                 (jdbc/query db sql-and-params)))))
 
 (defn create [db item]
-  (let [sql-and-params (-> (insert-into :todo_items)
+  (let [item (merge (build-empty-item) item)
+        sql-and-params (-> (insert-into :todo_items)
                            (values [(serialize item)])
                            sql/format)]
     (jdbc/with-db-transaction [tx db]

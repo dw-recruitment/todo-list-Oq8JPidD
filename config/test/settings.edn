@@ -1,4 +1,12 @@
-{:hsqldb-server
+{:web
+ {:kosmos/init :kosmos.web/RingJettyComponent
+  :kosmos/requires [:db]
+  :port 5005
+  :ring-app psdm.server/app
+  :app-init psdm.server/init-app
+  :join? false}
+
+ :hsqldb-server
        {:kosmos/init :kosmos.server/HsqlDbServerComponent
         :port        "9007"
         :database    "mem:test"

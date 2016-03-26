@@ -28,7 +28,7 @@
   (f)
   (migration/drop-db (:migration @system)))
 
-(defn db-fixture []
+(defn system-fixture []
   (use-fixtures :each start-system stop-system setup-db teardown-db))
 
 (defn get-db []
