@@ -1,7 +1,9 @@
 (ns psdm.server
   (:require [hiccup.core :refer :all]
             [hiccup.page :refer [html5]]
+            [hiccup.util]
             [psdm.config :as config]
+            [psdm.items :as items]
             [compojure.core :refer [routes GET]]
             [compojure.route :as route]
             [ring.middleware.content-type :as content-type]
@@ -13,24 +15,22 @@
     {:lang "en"}
     [:head [:title "Productivity Self Delusion Machine"]]
     [:body
-     [:h1 page-name]
+     [:h1 (hiccup.util/escape-html page-name)]
      contents]))
 
-(defn index [req]
+(defn item->list-item [item]
+  [:li (hiccup.util/escape-html (str (name (:status item)) " -- " (:description item)))])
+
+(defn index-html [req items]
   (layout req "Productivity Self Delusion Machine"
           [:h2 "For when actual productivity is just too hard"]
-          [:table
-           [:tr
-            [:td
-             [:img {:src "/assets/images/animated-under-construction.gif"}]]
-            [:td
-             [:marquee "!!Under Construction!! Weren't the 90s Amazing!"]]
-            [:td
-             [:img {:src "/assets/images/animated-under-construction.gif"}]]]
-           [:tr
-            [:td]
-            [:td]
-            [:td "Best viewed with:" [:br] [:img {:src "/assets/images/netnow3.gif"}]]]]))
+          [:ul
+           (map item->list-item items)]))
+
+(defn index [req]
+  (let [db (get-in req [:components :db])
+        items (items/find-all db {})]
+    (index-html req items)))
 
 (defn about [req]
   (layout req "About"
