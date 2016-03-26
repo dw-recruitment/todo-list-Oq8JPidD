@@ -60,3 +60,12 @@
            (if (= "development" config/*env*)
              (reload/wrap-reload handler)
              handler)))
+
+;; kosmos's ring jetty component does an ugly thing where it will actually
+;; mutate our app var using the following function. I'm not a fan, but it does
+;; provide us the needed hook to get needed components to our routes.
+(defn init-app [app server-component]
+  (fn [request]
+    (let [request (assoc request
+                    :components (select-keys server-component [:db]))]
+      (app request))))
