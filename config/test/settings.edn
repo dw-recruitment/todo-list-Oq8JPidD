@@ -1,0 +1,21 @@
+{:hsqldb-server
+       {:kosmos/init :kosmos.server/HsqlDbServerComponent
+        :port        "9007"
+        :database    "mem:test"
+        :dbname      "test"}
+
+ :db
+       {:kosmos/init     :kosmos.db/DbComponent
+        :kosmos/requires [:hsqldb-server]
+        :classname       "org.hsqldb.jdbc.JDBCDriver"
+        :subprotocol     "hsqldb"
+        :protocol        "hsql"
+        :subname         "hsql://localhost:9007/test"
+        :host            "localhost"
+        :port            9007
+        :database        "test"
+        :user            "SA"
+        :password        ""}
+
+ :migration
+       {:kosmos/requires [:db]}}

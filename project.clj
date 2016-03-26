@@ -8,6 +8,7 @@
                  [kosmos/kosmos-hsqldb-server "0.0.1"]
                  [kosmos/kosmos-hikari "0.0.1"]
                  [ring/ring-devel "1.4.0"]
+                 [honeysql "0.6.3"]
                  [ragtime "0.5.3"]]
   :main ^:skip-aot psdm.core
   :target-path "target/%s"
