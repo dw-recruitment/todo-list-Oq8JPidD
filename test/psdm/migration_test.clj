@@ -45,17 +45,17 @@
           db (:db migration)]
       (try
         (testing "migrate runs any new migrations"
-          (is (not ((get-tables db) "todo_items")))
+          (is (not ((get-tables db) "todo_list")))
           (migrate migration)
-          (is ((get-tables db) "todo_items"))
+          (is ((get-tables db) "todo_list"))
           (testing "but does not load data"
             (is (not (seq (get-data db))))))
         (testing "rollback backs out last migration"
           (rollback migration)
-          (is (not ((get-tables db) "todo_items"))))
+          (is (not ((get-tables db) "todo_list"))))
         (testing "rebuild recreates the database and populates it"
           (rebuild migration)
-          (is ((get-tables db) "todo_items"))
+          (is ((get-tables db) "todo_list"))
           (is (seq (get-data db))))
         (finally
           (kosmos/stop system))))))
