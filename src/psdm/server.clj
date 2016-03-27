@@ -187,8 +187,20 @@
           ;; doing this old school where we reload the whole page on a post.
           (resp/redirect "/" 303)))))
 
+(defn todo-list-delete-toggle [todo-list]
+  [:form {:class "item-toggle"
+          :action "/"
+          :method "post"}
+   [:input {:type "hidden" :name "_method"
+            :value "delete"}]
+   [:input {:type  "hidden" :name "id"
+            :value (:id todo-list)}]
+   [:input {:type "submit"
+            :value "delete"}]])
+
 (defn todo-list->list-item [todo-list]
   [:li
+   (todo-list-delete-toggle todo-list)
    [:span
     [:a {:href (todo-list-url (:id todo-list))}
      (hiccup.util/escape-html (:name todo-list))]]])
@@ -224,7 +236,8 @@
 (def todo-list-routes
   (routes
     (GET "/" _ todo-list-index)
-    (POST "/" _ todo-list-post-handler)))
+    (POST "/" _ todo-list-post-handler)
+    (DELETE "/" _ todo-list-delete-handler)))
 
 (defn todo-items-routes [todo-list-id]
   (routes

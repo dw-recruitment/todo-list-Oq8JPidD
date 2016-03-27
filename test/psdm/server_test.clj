@@ -72,11 +72,11 @@
   (let [todo-list (todo-list/create (helper/get-db)
                                     {:name "Test List"})
         item (items/create (helper/get-db)
-                           {:description "descriptive"
-                            :status :todo
+                           {:description  "descriptive"
+                            :status       :todo
                             :todo_list_id (:id todo-list)})
         req (mock/request :post (todo-list-url (:id todo-list))
-                          {"id" (str (:id item))
+                          {"id"      (str (:id item))
                            "_method" "delete"})
         resp (app req)]
     (testing "it returns a 303 to redirect the browser"
@@ -112,3 +112,15 @@
                     (map :name)
                     (filter #{list-name})
                     count))))))
+
+(deftest test-delete-todo-list
+  (let [todo-list (todo-list/create (helper/get-db) {:name "Bob's Todo List"})
+        resp (app (mock/request :post "/"
+                                {"_method" "delete"
+                                 "id"      (:id todo-list)}))]
+    (testing "it returns a 303 to redirect the browser"
+      (is (= 303 (:status resp))))
+    (testing "it redirects back to the todo lists"
+      (is (= "/" (get-in resp [:headers "Location"]))))
+    (testing "it deletes the todo list"
+      (is (not (todo-list/find-by-id (helper/get-db) (:id todo-list)))))))
