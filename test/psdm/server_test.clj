@@ -61,6 +61,20 @@
     (testing "it returns a 400 if the payload is invalid"
       (is (= 400 (:status resp))))))
 
+(deftest test-delete-todo-item
+  (let [item (items/create (helper/get-db) {:description "descriptive"
+                                            :status :todo})
+        req (mock/request :post todo-items-base-path
+                          {"id" (str (:id item))
+                           "_method" "delete"})
+        resp (app req)]
+    (testing "it returns a 303 to redirect the browser"
+      (is (= 303 (:status resp))))
+    (testing "it redirects back to the todo items list"
+      (is (= todo-items-base-path (get-in resp [:headers "Location"]))))
+    (testing "it deletes the indicated todo item"
+      (is (not (items/find-by-id (helper/get-db) (:id item)))))))
+
 (deftest test-todo-item-form-params
   (let [form-params {"created_at"  "should be ignored"
                      "description" "a description"

@@ -50,6 +50,13 @@
         (is (= :done (:status (find-by-id (helper/get-db) id))))
         (is (:id inserted-item))))))
 
+(deftest test-delete
+  (let [item (create (helper/get-db) {:description "What an amazing thing todo"
+                                      :status      :todo})
+        id (:id item)]
+    (delete (helper/get-db) id)
+    (is (not (find-by-id (helper/get-db) id)))))
+
 (deftest test-find-all
   (let [items (->> (range 50)
                    (map (fn [i] {:description (str "item " i)

@@ -7,7 +7,7 @@
             [schema.core :as s]
             [schema.coerce :as coerce]
             [schema.utils :as u]
-            [compojure.core :refer [routes GET POST]]
+            [compojure.core :refer [routes GET POST DELETE]]
             [compojure.route :as route]
             [clojure.tools.logging :as log]
             [ring.util.response :as resp]
@@ -52,8 +52,18 @@
    [:input {:type  "submit"
             :value (toggle-button-label (:status item))}]])
 
+(defn item-delete-toggle [item]
+  [:form {:class "item-toggle" :action todo-items-base-path :method "post"}
+   [:input {:type "hidden" :name "_method"
+            :value "delete"}]
+   [:input {:type "hidden" :name "id"
+            :value (:id item)}]
+   [:input {:type  "submit"
+            :value "delete"}]])
+
 (defn item->list-item [item]
   [:li
+   (item-delete-toggle item)
    (item-doneness-toggle item)
    [:span {:class (item-css-class item)}
     (hiccup.util/escape-html (str (name (:status item)) " -- " (:description item)))]])
@@ -111,6 +121,15 @@
           ;; doing this old school where we reload the whole page on a post.
           (resp/redirect todo-items-base-path 303)))))
 
+(defn todo-items-delete-handler [req]
+  (let [id (-> req
+               :form-params
+               (get "id")
+               (Integer/parseInt))
+        db (get-in req [:components :db])]
+    (items/delete db id)
+    (resp/redirect todo-items-base-path 303)))
+
 (defn about [req]
   (layout req "About"
           [:p "Imagine a world in which you could write down the things you "
@@ -131,6 +150,7 @@
   (routes
     (GET todo-items-base-path _ index)
     (POST todo-items-base-path _ todo-items-post-handler)
+    (DELETE todo-items-base-path _ todo-items-delete-handler)
     (GET "/about" _ about)
     (route/not-found not-found)))
 

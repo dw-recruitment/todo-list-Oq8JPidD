@@ -96,3 +96,10 @@
   (if (:id item)
     (update db item)
     (create db item)))
+
+(defn delete [db id]
+  (let [sql-and-params (-> (delete-from :todo_items)
+                           (where [:= :id :?id])
+                           (sql/format :params {:id id}))]
+    (jdbc/with-db-transaction [tx db]
+      (jdbc/execute! tx sql-and-params))))
