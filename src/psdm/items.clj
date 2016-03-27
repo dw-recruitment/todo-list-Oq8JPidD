@@ -3,9 +3,10 @@
     ;; Once upon a time, update was not part of clojure.core. Then, one day,
     ;; someone added it there. Now every library in Clojureland elicits a
     ;; warning message about 'update' being shadowed. The end.
-            [honeysql.helpers :exclude [update] :refer :all]
+            [honeysql.helpers :exclude [update] :refer :all :as sql-h]
             [clojure.set :as set]
-            [clojure.java.jdbc :as jdbc]))
+            [clojure.java.jdbc :as jdbc])
+  (:refer-clojure :exclude [update]))
 
 (defn build-empty-item []
   {:status :todo})
@@ -18,16 +19,16 @@
 (def status->integer (set/map-invert integer->status))
 
 (defn deserialize [db-item]
-  (update db-item :status integer->status))
+  (update-in db-item [:status] integer->status))
 
 (defn serialize [item]
-  (update item :status status->integer))
+  (update-in item [:status] status->integer))
 
 (defn find-all [db opts]
   (let [opts (merge list-defaults opts)
         sql-and-params (-> (select :*)
                            (from :todo_items)
-                           (order-by [:created_at :asc])
+                           (order-by [:created_at :asc] :id)
                            sql/format)]
     ;; TODO: paginate
     (->> sql-and-params
@@ -57,3 +58,17 @@
     (jdbc/with-db-transaction [tx db]
       (jdbc/execute! tx sql-and-params)
       (find-by-id tx (get-last-id tx)))))
+
+(defn update [db item]
+  (let [sql-and-params (-> (sql-h/update :todo_items)
+                           (sset (serialize (dissoc item :id)))
+                           (where [:= :id :?id])
+                           (sql/format :params {:id (:id item)}))]
+    (jdbc/with-db-transaction [tx db]
+      (jdbc/execute! tx sql-and-params)
+      (find-by-id tx (:id item)))))
+
+(defn upsert [db item]
+  (if (:id item)
+    (update db item)
+    (create db item)))

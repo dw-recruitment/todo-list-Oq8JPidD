@@ -1,0 +1,10 @@
+.done-item {
+  text-decoration: line-through;
+}
+
+.item-toggle {
+  display: inline;
+}
+
+.todo-item {
+}

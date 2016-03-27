@@ -1,6 +1,6 @@
 (ns psdm.server
   (:require [hiccup.core :refer :all]
-            [hiccup.page :refer [html5]]
+            [hiccup.page :refer [html5 include-css]]
             [hiccup.util]
             [psdm.config :as config]
             [psdm.items :as items]
@@ -21,13 +21,42 @@
 (defn layout [req page-name & contents]
   (html5
     {:lang "en"}
-    [:head [:title "Productivity Self Delusion Machine"]]
+    [:head
+     (include-css "style.css")
+     [:title "Productivity Self Delusion Machine"]]
     [:body
      [:h1 (hiccup.util/escape-html page-name)]
      contents]))
 
+(defn item-css-class [item]
+  (get {:done "done-item"
+        :todo "todo-item"}
+       (:status item)
+       ""))
+
+(def opposite-status {:done :todo
+                      :todo :done})
+
+(def toggle-button-label
+  {:todo "done"
+   :done "undo"})
+
+(defn item-doneness-toggle [item]
+  [:form {:class "item-toggle" :action todo-items-base-path :method "post"}
+   [:input {:type "hidden" :name "id"
+            :value (:id item)}]
+   [:input {:type  "hidden" :name "description"
+            :value (:description item)}]
+   [:input {:type  "hidden" :name "status"
+            :value (name (opposite-status (:status item)))}]
+   [:input {:type  "submit"
+            :value (toggle-button-label (:status item))}]])
+
 (defn item->list-item [item]
-  [:li (hiccup.util/escape-html (str (name (:status item)) " -- " (:description item)))])
+  [:li
+   (item-doneness-toggle item)
+   [:span {:class (item-css-class item)}
+    (hiccup.util/escape-html (str (name (:status item)) " -- " (:description item)))]])
 
 (defn create-todo-item-form []
   [:div
@@ -47,7 +76,8 @@
         items (items/find-all db {})]
     (index-html req items)))
 
-(def TodoItemCreateOrUpdate {:description             s/Str
+(def TodoItemCreateOrUpdate {(s/optional-key :id)     s/Int
+                             :description             s/Str
                              (s/optional-key :status) (s/enum :todo :done)})
 
 (defn keywordize-map [params]
@@ -56,8 +86,12 @@
                           v))
              {} params))
 
+(def form-coercion-matcher (coerce/first-matcher
+                             [coerce/string-coercion-matcher
+                              coerce/json-coercion-matcher]))
+
 (def todo-item-params (comp (coerce/coercer TodoItemCreateOrUpdate
-                                            coerce/json-coercion-matcher)
+                                            form-coercion-matcher)
                             keywordize-map))
 
 (defn invalid-html [req error]
@@ -67,13 +101,13 @@
 
 (defn todo-items-post-handler [req]
   (let [db (get-in req [:components :db])
-        parsed-todo-item (todo-item-params (:form-params req))]
-    (if (u/error? parsed-todo-item)
+        item (todo-item-params (:form-params req))]
+    (if (u/error? item)
       (do
-        (log/warn "Invalid todo-item" (u/error-val parsed-todo-item))
-        (resp/status (resp/response (invalid-html req parsed-todo-item))
+        (log/warn "Invalid todo-item" (u/error-val item))
+        (resp/status (resp/response (invalid-html req item))
                      400))
-      (do (items/create db parsed-todo-item)
+      (do (items/upsert db item)
           ;; doing this old school where we reload the whole page on a post.
           (resp/redirect todo-items-base-path 303)))))
 

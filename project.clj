@@ -33,7 +33,10 @@
   :main ^:skip-aot psdm.core
   :target-path "target/%s"
   :plugins [[lein-cloverage "1.0.6"]]
-  :aliases {"db" ["run" "-m" "psdm.migration"]}
+  :aliases {"db" ["run" "-m" "psdm.migration"]
+            "db-manager" ["run" "-m" "org.hsqldb.util.DatabaseManagerSwing"
+                          "--url" "jdbc:hsqldb:file:target/localdatabase"
+                          "--user" "SA"]}
   ;; The version99 repo we need for an empty commons-logging artifact. This will
   ;; help us deal with the nightmare that is logging in java.
   :repositories [["version99" "http://version99.qos.ch/"]]

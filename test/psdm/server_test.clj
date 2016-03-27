@@ -55,7 +55,7 @@
         (testing "with a status of :todo"
           (is (= :todo (:status (first matching-items))))))))
   (let [resp (->> {"description" "a description"
-                   "created_at" "2016-03-26 12:00:00"}
+                   "created_at"  "2016-03-26 12:00:00"}
                   (mock/request :post todo-items-base-path)
                   app)]
     (testing "it returns a 400 if the payload is invalid"
@@ -68,6 +68,8 @@
     (testing "it only accepts :description and :status"
       (is (u/error? (todo-item-params form-params))))
     (testing "it coerces values properly"
-      (let [parsed-value (todo-item-params (dissoc form-params
-                                                   "created_at"))]
-        (is (= :todo (:status parsed-value)))))))
+      (let [parsed-value (todo-item-params (-> form-params
+                                               (dissoc "created_at")
+                                               (assoc "id" "5")))]
+        (is (= :todo (:status parsed-value)))
+        (is (= 5 (:id parsed-value)))))))
