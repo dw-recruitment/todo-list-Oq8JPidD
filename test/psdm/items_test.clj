@@ -21,7 +21,20 @@
         id (:id item)]
     (items/update (helper/get-db)
                   (assoc item :status :done))
-    (is (= :done (:status (find-by-id (helper/get-db) id))))))
+    (let [item (find-by-id (helper/get-db) id)]
+      (is (= :done (:status item)))
+
+      (testing "it updates the updated_at"
+        (let [old-updated-at (:updated_at item)]
+          ;; not sure how accurate HSQLDB timestamps are, so waiting a second
+          ;; just to be sure
+          (Thread/sleep 1000)
+          (items/update (helper/get-db)
+                        (assoc item :status :todo))
+
+          (let [new-updated-at (:updated_at (find-by-id (helper/get-db)
+                                                        (:id item)))]
+            (is (< (compare old-updated-at new-updated-at) 0))))))))
 
 (deftest test-upsert
   (let [item (create (helper/get-db) {:description "What an amazing thing todo"

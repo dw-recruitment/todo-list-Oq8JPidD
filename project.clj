@@ -11,6 +11,7 @@
                  [honeysql "0.6.3"]
                  [ragtime "0.5.3"]
                  [prismatic/schema "1.1.0"]
+                 [clj-time "0.11.0"]
                  ;; the logging API
                  [org.slf4j/slf4j-api "1.7.19"]
                  ;; this is an empty commons-logging artifact that will replace

@@ -5,7 +5,9 @@
     ;; warning message about 'update' being shadowed. The end.
             [honeysql.helpers :exclude [update] :refer :all :as sql-h]
             [clojure.set :as set]
-            [clojure.java.jdbc :as jdbc])
+            [clojure.java.jdbc :as jdbc]
+            [clj-time.core :as dt]
+            [clj-time.coerce :as coerce])
   (:refer-clojure :exclude [update]))
 
 (defn build-empty-item []
@@ -18,11 +20,29 @@
 
 (def status->integer (set/map-invert integer->status))
 
+(defn update-audit-dates [m update-fn]
+  (reduce (fn [m k]
+            (if (contains? m k)
+              (clojure.core/update m k update-fn)
+              m))
+          m
+          [:created_at :updated_at]))
+
+(defn serialize-audit-dates [item]
+  (update-audit-dates item coerce/to-date))
+
+(defn deserialize-audit-dates [db-item]
+  (update-audit-dates db-item coerce/from-date))
+
 (defn deserialize [db-item]
-  (update-in db-item [:status] integer->status))
+  (-> db-item
+      deserialize-audit-dates
+      (clojure.core/update :status integer->status)))
 
 (defn serialize [item]
-  (update-in item [:status] status->integer))
+  (-> item
+      serialize-audit-dates
+      (clojure.core/update :status status->integer)))
 
 (defn find-all [db opts]
   (let [opts (merge list-defaults opts)
@@ -52,6 +72,9 @@
 
 (defn create [db item]
   (let [item (merge (build-empty-item) item)
+        item (assoc item
+               :created_at (dt/now)
+               :updated_at (dt/now))
         sql-and-params (-> (insert-into :todo_items)
                            (values [(serialize item)])
                            sql/format)]
@@ -60,7 +83,8 @@
       (find-by-id tx (get-last-id tx)))))
 
 (defn update [db item]
-  (let [sql-and-params (-> (sql-h/update :todo_items)
+  (let [item (assoc item :updated_at (dt/now))
+        sql-and-params (-> (sql-h/update :todo_items)
                            (sset (serialize (dissoc item :id)))
                            (where [:= :id :?id])
                            (sql/format :params {:id (:id item)}))]
