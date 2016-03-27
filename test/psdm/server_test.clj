@@ -1,13 +1,14 @@
 (ns psdm.server-test
   (:require [clojure.test :refer :all]
             [psdm.server :refer [handler app
-                                 todo-items-base-path
-                                 todo-item-params]]
+                                 todo-item-params
+                                 todo-list-url]]
             [psdm.items :as items]
             [schema.utils :as u]
             [ring.mock.request :as mock]
             [clojure.string :as str]
-            [psdm.test-helper :as helper])
+            [psdm.test-helper :as helper]
+            [psdm.todo-list :as todo-list])
   (:import [java.util UUID]))
 
 (helper/system-fixture)
@@ -35,9 +36,12 @@
           "image/gif"))))
 
 (deftest test-todo-items-form
-  (let [description (str (UUID/randomUUID))
+  (let [todo-list (todo-list/create (helper/get-db)
+                                    {:name "Test List"})
+        todo-list-url (todo-list-url (:id todo-list))
+        description (str (UUID/randomUUID))
         resp (->> {"description" description}
-                  (mock/request :post todo-items-base-path)
+                  (mock/request :post todo-list-url)
                   app)]
     ;; 303 is correct here. 302 is commonly used, but technically not correct
     ;; as a 302 to requires the same request method be used when accessing the
@@ -46,7 +50,7 @@
     (testing "it returns a 303 to redirect the browser"
       (is (= 303 (:status resp))))
     (testing "it redirects back to the todo items list"
-      (is (#{todo-items-base-path} (get-in resp [:headers "Location"]))))
+      (is (= todo-list-url (get-in resp [:headers "Location"]))))
     (testing "it creates a todo_item on a post"
       (let [matching-items (->> (items/find-all (helper/get-db) {})
                                 (filter (comp (partial = description)
@@ -54,24 +58,32 @@
         (is (= 1 (count matching-items)))
         (testing "with a status of :todo"
           (is (= :todo (:status (first matching-items))))))))
-  (let [resp (->> {"description" "a description"
+  (let [todo-list (todo-list/create (helper/get-db)
+                                    {:name "Test List"})
+        todo-list-url (todo-list-url (:id todo-list))
+        resp (->> {"description" "a description"
                    "created_at"  "2016-03-26 12:00:00"}
-                  (mock/request :post todo-items-base-path)
+                  (mock/request :post todo-list-url)
                   app)]
     (testing "it returns a 400 if the payload is invalid"
       (is (= 400 (:status resp))))))
 
 (deftest test-delete-todo-item
-  (let [item (items/create (helper/get-db) {:description "descriptive"
-                                            :status :todo})
-        req (mock/request :post todo-items-base-path
+  (let [todo-list (todo-list/create (helper/get-db)
+                                    {:name "Test List"})
+        item (items/create (helper/get-db)
+                           {:description "descriptive"
+                            :status :todo
+                            :todo_list_id (:id todo-list)})
+        req (mock/request :post (todo-list-url (:id todo-list))
                           {"id" (str (:id item))
                            "_method" "delete"})
         resp (app req)]
     (testing "it returns a 303 to redirect the browser"
       (is (= 303 (:status resp))))
     (testing "it redirects back to the todo items list"
-      (is (= todo-items-base-path (get-in resp [:headers "Location"]))))
+      (is (= (todo-list-url (:id todo-list))
+             (get-in resp [:headers "Location"]))))
     (testing "it deletes the indicated todo item"
       (is (not (items/find-by-id (helper/get-db) (:id item)))))))
 
@@ -87,3 +99,16 @@
                                                (assoc "id" "5")))]
         (is (= :todo (:status parsed-value)))
         (is (= 5 (:id parsed-value)))))))
+
+(deftest test-create-todo-list
+  (let [list-name (str (UUID/randomUUID))
+        resp (app (mock/request :post "/" {:name list-name}))]
+    (testing "it returns a 303 to redirect the browser"
+      (is (= 303 (:status resp))))
+    (testing "it redirects back to the todo lists"
+      (is (= "/" (get-in resp [:headers "Location"]))))
+    (testing "it creates the todo list"
+      (is (= 1 (->> (todo-list/find-all (helper/get-db) {})
+                    (map :name)
+                    (filter #{list-name})
+                    count))))))

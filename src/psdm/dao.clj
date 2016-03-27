@@ -56,12 +56,24 @@
       (jdbc/execute! tx sql-and-params)
       (find-by-id tx table (get-last-id tx)))))
 
-(defn find-all [db table opts]
-  (let [sql-and-params (-> (select :*)
-                           (from table)
-                           (order-by [:created_at :asc] :id)
-                           sql/format)]
+(defn find-all [db table & criteria]
+  (let [sql-map (-> (select :*)
+                    (from table)
+                    (order-by [:created_at :asc] :id))
+        criteria (apply merge criteria)
+        sql-map (reduce (fn [sql-map [k v]]
+                          (merge-where sql-map [:= k v]))
+                        sql-map
+                        criteria)
+        sql-and-params (sql/format sql-map)]
     ;; TODO: paginate
     (->> sql-and-params
          (jdbc/query db)
          (map deserialize-audit-dates))))
+
+(defn delete [db table id]
+  (let [sql-and-params (-> (delete-from table)
+                           (where [:= :id id])
+                           sql/format)]
+    (jdbc/with-db-transaction [tx db]
+      (jdbc/execute! tx sql-and-params))))

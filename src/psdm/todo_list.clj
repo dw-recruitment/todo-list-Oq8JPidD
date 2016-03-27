@@ -7,4 +7,8 @@
 (defn create [db todo-list]
   (dao/create db :todo_list todo-list))
 
-(defn delete [db id])
+(defn delete [db id]
+  (dao/delete db :todo_list id))
+
+(defn find-by-id [db id]
+  (dao/find-by-id db :todo_list id))

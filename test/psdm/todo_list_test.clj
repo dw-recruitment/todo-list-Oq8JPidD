@@ -1,7 +1,8 @@
 (ns psdm.todo-list-test
   (:require [clojure.test :refer :all]
             [psdm.todo-list :refer :all]
-            [psdm.test-helper :refer [get-db system-fixture]]))
+            [psdm.test-helper :refer [get-db system-fixture]]
+            [psdm.items :as items]))
 
 (system-fixture)
 
@@ -26,3 +27,15 @@
       (let [dates (map :created_at retrieved-lists)]
         (is (->> (map compare dates (rest dates))
                  (every? (partial > 1))))))))
+
+(deftest test-find-by-id
+  (let [todolist (create (get-db) {:name "Test"})]
+    (is (find-by-id (get-db) (:id todolist)))))
+
+(deftest test-delete
+  (let [todolist (create (get-db) {:name "Test"})
+        item (items/create (get-db) {:description  "some item"
+                                     :todo_list_id (:id todolist)})]
+    (delete (get-db) (:id todolist))
+    (is (not (find-by-id (get-db) (:id todolist))))
+    (is (not (items/find-by-id (get-db) (:id item))))))

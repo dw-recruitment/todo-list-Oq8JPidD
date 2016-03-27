@@ -1,8 +1,8 @@
 (ns psdm.items-test
   (:require [clojure.test :refer :all]
             [psdm.items :exclude [update] :refer :all :as items]
-            [psdm.test-helper :as helper])
-  (:import [java.util Date]))
+            [psdm.test-helper :as helper]
+            [psdm.todo-list :as todo-list]))
 
 (helper/system-fixture)
 
@@ -70,3 +70,23 @@
       (let [dates (map :created_at retrieved-items)]
         (is (->> (map compare dates (rest dates))
                  (every? (partial > 1))))))))
+
+(deftest test-find-all-for-list
+  (let [create-for-list-fn (fn [todo-list]
+                             (->> (range 2)
+                                  (map (fn [i]
+                                         {:description (str "item " i)
+                                          :todo-list-id (:id todo-list)}))
+                                  (map create
+                                       (repeat (helper/get-db)))))
+        todo-list-1 (todo-list/create (helper/get-db) {:name "A todo list"})
+        todo-list-2 (todo-list/create (helper/get-db) {:name "Another todo list"})
+        items-1 (create-for-list-fn todo-list-1)
+        items-2 (create-for-list-fn todo-list-2)]
+    (testing "it returns the items for the indicated todo list"
+      (is (= (into #{} items-1)
+             (into #{} (find-all-for-list (helper/get-db)
+                                          (:id todo-list-1)))))
+      (is (= (into #{} items-2)
+             (into #{} (find-all-for-list (helper/get-db)
+                                          (:id todo-list-2))))))))

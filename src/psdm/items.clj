@@ -31,7 +31,10 @@
         (clojure.core/update :status status->integer))))
 
 (defn find-all [db opts]
-  (map deserialize (dao/find-all db :todo_items opts)))
+  (map deserialize (dao/find-all db :todo_items)))
+
+(defn find-all-for-list [db todo-list-id]
+  (map deserialize (dao/find-all db :todo_items {:todo_list_id todo-list-id})))
 
 (defn find-by-id [db id]
   (deserialize (dao/find-by-id db :todo_items id)))

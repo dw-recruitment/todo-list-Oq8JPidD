@@ -4,10 +4,11 @@
             [hiccup.util]
             [psdm.config :as config]
             [psdm.items :as items]
+            [psdm.todo-list :as todo-list]
             [schema.core :as s]
             [schema.coerce :as coerce]
             [schema.utils :as u]
-            [compojure.core :refer [routes GET POST DELETE]]
+            [compojure.core :refer [routes context GET POST DELETE]]
             [compojure.route :as route]
             [clojure.tools.logging :as log]
             [ring.util.response :as resp]
@@ -16,13 +17,14 @@
             [ring.middleware.reload :as reload]
             [ring.middleware.params :as params]))
 
-(def todo-items-base-path "/")
+(defn todo-list-url [id]
+  (str "/" id "/"))
 
 (defn layout [req page-name & contents]
   (html5
     {:lang "en"}
     [:head
-     (include-css "style.css")
+     (include-css "/style.css")
      [:title "Productivity Self Delusion Machine"]]
     [:body
      [:h1 (hiccup.util/escape-html page-name)]
@@ -42,8 +44,10 @@
    :done "undo"})
 
 (defn item-doneness-toggle [item]
-  [:form {:class "item-toggle" :action todo-items-base-path :method "post"}
-   [:input {:type "hidden" :name "id"
+  [:form {:class "item-toggle"
+          :action (todo-list-url (:todo_list_id item))
+          :method "post"}
+   [:input {:type  "hidden" :name "id"
             :value (:id item)}]
    [:input {:type  "hidden" :name "description"
             :value (:description item)}]
@@ -53,10 +57,12 @@
             :value (toggle-button-label (:status item))}]])
 
 (defn item-delete-toggle [item]
-  [:form {:class "item-toggle" :action todo-items-base-path :method "post"}
-   [:input {:type "hidden" :name "_method"
+  [:form {:class "item-toggle"
+          :action (todo-list-url (:todo_list_id item))
+          :method "post"}
+   [:input {:type  "hidden" :name "_method"
             :value "delete"}]
-   [:input {:type "hidden" :name "id"
+   [:input {:type  "hidden" :name "id"
             :value (:id item)}]
    [:input {:type  "submit"
             :value "delete"}]])
@@ -68,23 +74,31 @@
    [:span {:class (item-css-class item)}
     (hiccup.util/escape-html (str (name (:status item)) " -- " (:description item)))]])
 
-(defn create-todo-item-form []
+(defn create-todo-item-form [todo-list-id]
   [:div
-   [:form {:action todo-items-base-path :method "post"}
+   [:form {:action (todo-list-url todo-list-id) :method "post"}
     [:input {:type "text" :name "description" :maxlength 140}]
     [:input {:type "submit" :value "Submit"}]]])
 
-(defn index-html [req items]
+(defn index-html [req todo-list items]
   (layout req "Productivity Self Delusion Machine"
-          [:h2 "For when actual productivity is just too hard"]
-          (create-todo-item-form)
+          [:h2 (:name todo-list)]
+          (create-todo-item-form (:id todo-list))
           [:ul
            (map item->list-item items)]))
 
+(defn request->todo-list-id [req]
+  (let [todo-list-id (-> req
+                         (get-in [:route-params :todo-list-id])
+                         Integer/parseInt)]
+    todo-list-id))
+
 (defn index [req]
   (let [db (get-in req [:components :db])
-        items (items/find-all db {})]
-    (index-html req items)))
+        todo-list-id (request->todo-list-id req)
+        todo-list (todo-list/find-by-id db todo-list-id)
+        items (items/find-all-for-list db todo-list-id)]
+    (index-html req todo-list items)))
 
 (def TodoItemCreateOrUpdate {(s/optional-key :id)     s/Int
                              :description             s/Str
@@ -111,7 +125,11 @@
 
 (defn todo-items-post-handler [req]
   (let [db (get-in req [:components :db])
-        item (todo-item-params (:form-params req))]
+        todo-list-id (request->todo-list-id req)
+        ;; We don't set the todo_list_id via the form params. We want to control
+        ;; this association based upon the URL posted to.
+        item (assoc (todo-item-params (:form-params req))
+               :todo_list_id todo-list-id)]
     (if (u/error? item)
       (do
         (log/warn "Invalid todo-item" (u/error-val item))
@@ -119,16 +137,73 @@
                      400))
       (do (items/upsert db item)
           ;; doing this old school where we reload the whole page on a post.
-          (resp/redirect todo-items-base-path 303)))))
+          (resp/redirect (todo-list-url todo-list-id) 303)))))
 
 (defn todo-items-delete-handler [req]
+  ;; Not being all that RESTful here in this case as the URL does not identify
+  ;; the resource we want to delete. We are using a form param for that purpose.
+  ;; This is mainly a convenience thing. If we actually turn this into a more
+  ;; general API we'll revisit.
+  (let [id (-> req
+               :form-params
+               (get "id")
+               (Integer/parseInt))
+        todo-list-id (request->todo-list-id req)
+        db (get-in req [:components :db])]
+    (items/delete db id)
+    (resp/redirect (todo-list-url todo-list-id) 303)))
+
+(defn todo-list-delete-handler [req]
   (let [id (-> req
                :form-params
                (get "id")
                (Integer/parseInt))
         db (get-in req [:components :db])]
-    (items/delete db id)
-    (resp/redirect todo-items-base-path 303)))
+    (todo-list/delete db id)
+    (resp/redirect "/" 303)))
+
+(def TodoListCreateOrUpdate {(s/optional-key :id) s/Int
+                             :name                s/Str})
+
+(def todo-list-params (comp (coerce/coercer TodoListCreateOrUpdate
+                                            form-coercion-matcher)
+                            keywordize-map))
+
+(defn create-todo-list-form []
+  [:div
+   [:form {:action "/" :method "post"}
+    [:input {:type "text" :name "name" :maxlength 100}]
+    [:input {:type "submit" :value "Submit"}]]])
+
+(defn todo-list-post-handler [req]
+  (let [db (get-in req [:components :db])
+        todo-list (todo-list-params (:form-params req))]
+    (if (u/error? todo-list)
+      (do
+        (log/warn "Invalid todo-list" (u/error-val todo-list))
+        (resp/status (resp/response (invalid-html req todo-list))
+                     400))
+      (do (todo-list/create db todo-list)
+          ;; doing this old school where we reload the whole page on a post.
+          (resp/redirect "/" 303)))))
+
+(defn todo-list->list-item [todo-list]
+  [:li
+   [:span
+    [:a {:href (todo-list-url (:id todo-list))}
+     (hiccup.util/escape-html (:name todo-list))]]])
+
+(defn todo-list-index-html [req todo-lists]
+  (layout req "Productivity Self Delusion Machine"
+          [:h2 "TODO Lists"]
+          (create-todo-list-form)
+          [:ul
+           (map todo-list->list-item todo-lists)]))
+
+(defn todo-list-index [req]
+  (let [db (get-in req [:components :db])
+        todo-lists (todo-list/find-all db {})]
+    (todo-list-index-html req todo-lists)))
 
 (defn about [req]
   (layout req "About"
@@ -146,12 +221,23 @@
 (defn not-found [req]
   (layout req "Not Found!"))
 
+(def todo-list-routes
+  (routes
+    (GET "/" _ todo-list-index)
+    (POST "/" _ todo-list-post-handler)))
+
+(defn todo-items-routes [todo-list-id]
+  (routes
+    (GET "/" _ index)
+    (POST "/" _ todo-items-post-handler)
+    (DELETE "/" _ todo-items-delete-handler)))
+
 (def handler
   (routes
-    (GET todo-items-base-path _ index)
-    (POST todo-items-base-path _ todo-items-post-handler)
-    (DELETE todo-items-base-path _ todo-items-delete-handler)
     (GET "/about" _ about)
+    todo-list-routes
+    (context "/:todo-list-id" [todo-list-id]
+      (todo-items-routes todo-list-id))
     (route/not-found not-found)))
 
 (defn components-request [request]
