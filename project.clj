@@ -32,6 +32,7 @@
                  ]
   :main ^:skip-aot psdm.core
   :target-path "target/%s"
+  :plugins [[lein-cloverage "1.0.6"]]
   :aliases {"db" ["run" "-m" "psdm.migration"]}
   ;; The version99 repo we need for an empty commons-logging artifact. This will
   ;; help us deal with the nightmare that is logging in java.
