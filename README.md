@@ -28,5 +28,5 @@ Then navigate to [http://localhost:5000](http://localhost:5000).
 From the project root, run the following:
 
 ```
-lein test
+./script/test
 ```
