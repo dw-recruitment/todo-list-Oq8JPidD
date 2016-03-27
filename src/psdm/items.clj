@@ -45,14 +45,7 @@
     (deserialize (dao/create db :todo_items item))))
 
 (defn update [db item]
-  (let [item (assoc item :updated_at (dt/now))
-        sql-and-params (-> (sql-h/update :todo_items)
-                           (sset (serialize (dissoc item :id)))
-                           (where [:= :id :?id])
-                           (sql/format :params {:id (:id item)}))]
-    (jdbc/with-db-transaction [tx db]
-      (jdbc/execute! tx sql-and-params)
-      (find-by-id tx (:id item)))))
+  (deserialize (dao/update db :todo_items (serialize item))))
 
 (defn upsert [db item]
   (if (:id item)
@@ -60,8 +53,4 @@
     (create db item)))
 
 (defn delete [db id]
-  (let [sql-and-params (-> (delete-from :todo_items)
-                           (where [:= :id :?id])
-                           (sql/format :params {:id id}))]
-    (jdbc/with-db-transaction [tx db]
-      (jdbc/execute! tx sql-and-params))))
+  (dao/delete db :todo_items id))

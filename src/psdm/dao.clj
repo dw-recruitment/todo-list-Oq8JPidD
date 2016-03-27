@@ -3,7 +3,8 @@
             [honeysql.helpers :exclude [update] :refer :all :as sql-h]
             [clj-time.coerce :as coerce]
             [clj-time.core :as dt]
-            [clojure.java.jdbc :as jdbc]))
+            [clojure.java.jdbc :as jdbc])
+  (:refer-clojure :exclude [update]))
 
 (defn safe
   "Given a conversion function, returns a new conversion function such that
@@ -16,12 +17,13 @@
         x))))
 
 (defn update-audit-dates [m update-fn]
-  (reduce (fn [m k]
-            (if (and (contains? m k))
-              (clojure.core/update m k (safe update-fn))
-              m))
-          m
-          [:created_at :updated_at]))
+  (when m
+    (reduce (fn [m k]
+              (if (and (contains? m k))
+                (clojure.core/update m k (safe update-fn))
+                m))
+            m
+            [:created_at :updated_at])))
 
 (defn serialize-audit-dates [item]
   (update-audit-dates item coerce/to-date))
@@ -77,3 +79,13 @@
                            sql/format)]
     (jdbc/with-db-transaction [tx db]
       (jdbc/execute! tx sql-and-params))))
+
+(defn update [db table row]
+  (let [row (assoc row :updated_at (dt/now))
+        sql-and-params (-> (sql-h/update table)
+                           (sset (serialize-audit-dates (dissoc row :id)))
+                           (where [:= :id :?id])
+                           (sql/format :params {:id (:id row)}))]
+    (jdbc/with-db-transaction [tx db]
+      (jdbc/execute! tx sql-and-params)
+      (find-by-id tx table (:id row)))))
