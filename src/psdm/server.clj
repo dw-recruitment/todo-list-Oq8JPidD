@@ -154,23 +154,22 @@
     (GET "/about" _ about)
     (route/not-found not-found)))
 
+(defn components-request [request]
+  ;; this isn't the best. We are reaching into kosmos's system var (mutated
+  ;; on startup) to retrieve the web component and inject dependencies into the
+  ;; request. Really, we should be given the components we need not looking them
+  ;; up ourselves, but no time to fix this at the moment
+  (assoc request :components (select-keys (:web kosmos/system) [:db])))
+
+(defn wrap-components [handler]
+  (fn [request]
+    (handler (components-request request))))
+
 (def app (let [handler (-> handler
                            (resource/wrap-resource "public")
                            content-type/wrap-content-type
-                           params/wrap-params)]
+                           params/wrap-params
+                           wrap-components)]
            (if (= "development" config/*env*)
              (reload/wrap-reload handler)
              handler)))
-
-;; kosmos's ring jetty component does an ugly thing where it will actually
-;; mutate our app var using the following function. I'm not a fan, but it does
-;; provide us the needed hook to get needed components to our routes.
-;;
-;; Among other problems this causes, reloading this namespace whipes out the
-;; mutation made by the jetty component. This means ring's devel-reload doesn't
-;; work. Errr...
-(defn init-app [app server-component]
-  (fn [request]
-    (let [request (assoc request
-                    :components (select-keys server-component [:db]))]
-      (app request))))

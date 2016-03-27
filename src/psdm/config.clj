@@ -20,7 +20,10 @@
        kosmos/map->system
        ;; start the system, this will add a shutdown hook to stop
        ;; the system as well
-       kosmos/start))
+       kosmos/start!))
+
+(defn stop-system []
+  (kosmos/stop!))
 
 (defn not-production? []
   ;; when it comes to checking for production, it's better to check that we

@@ -16,7 +16,7 @@
 
 (defn stop-system [f]
   (f)
-  (kosmos/stop @system)
+  (config/stop-system)
   (reset! system nil))
 
 (defn setup-db [f]

@@ -3,7 +3,6 @@
   :kosmos/requires [:db]
   :port 5000
   :ring-app psdm.server/app
-  :app-init psdm.server/init-app
   :join? false}
 
  :hsqldb-server
