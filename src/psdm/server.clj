@@ -5,6 +5,7 @@
             [psdm.config :as config]
             [psdm.items :as items]
             [psdm.todo-list :as todo-list]
+            [psdm.views.layout :as layout]
             [schema.core :as s]
             [schema.coerce :as coerce]
             [schema.utils :as u]
@@ -20,16 +21,6 @@
 (defn todo-list-url [id]
   (str "/" id "/"))
 
-(defn layout [req page-name & contents]
-  (html5
-    {:lang "en"}
-    [:head
-     (include-css "/style.css")
-     [:title "Productivity Self Delusion Machine"]]
-    [:body
-     [:h1 (hiccup.util/escape-html page-name)]
-     contents]))
-
 (defn item-css-class [item]
   (get {:done "done-item"
         :todo "todo-item"}
@@ -44,7 +35,7 @@
    :done "undo"})
 
 (defn item-doneness-toggle [item]
-  [:form {:class "item-toggle"
+  [:form {:class  "item-toggle"
           :action (todo-list-url (:todo_list_id item))
           :method "post"}
    [:input {:type  "hidden" :name "id"
@@ -57,7 +48,7 @@
             :value (toggle-button-label (:status item))}]])
 
 (defn item-delete-toggle [item]
-  [:form {:class "item-toggle"
+  [:form {:class  "item-toggle"
           :action (todo-list-url (:todo_list_id item))
           :method "post"}
    [:input {:type  "hidden" :name "_method"
@@ -81,11 +72,12 @@
     [:input {:type "submit" :value "Submit"}]]])
 
 (defn index-html [req todo-list items]
-  (layout req "Productivity Self Delusion Machine"
-          [:h2 (:name todo-list)]
-          (create-todo-item-form (:id todo-list))
-          [:ul
-           (map item->list-item items)]))
+  (layout/application
+    "Productivity Self Delusion Machine"
+    [:h2 (:name todo-list)]
+    (create-todo-item-form (:id todo-list))
+    [:ul
+     (map item->list-item items)]))
 
 (defn request->todo-list-id [req]
   (let [todo-list-id (-> req
@@ -121,7 +113,7 @@
 (defn invalid-html [req error]
   ;; This is pretty bare-bones currently. In general, this shouldn't happen
   ;; unless someone is bypassing the UI.
-  (layout req "Invalid"))
+  (layout/application "Invalid"))
 
 (defn todo-items-post-handler [req]
   (let [db (get-in req [:components :db])
@@ -188,14 +180,14 @@
           (resp/redirect "/" 303)))))
 
 (defn todo-list-delete-toggle [todo-list]
-  [:form {:class "item-toggle"
+  [:form {:class  "item-toggle"
           :action "/"
           :method "post"}
-   [:input {:type "hidden" :name "_method"
+   [:input {:type  "hidden" :name "_method"
             :value "delete"}]
    [:input {:type  "hidden" :name "id"
             :value (:id todo-list)}]
-   [:input {:type "submit"
+   [:input {:type  "submit"
             :value "delete"}]])
 
 (defn todo-list->list-item [todo-list]
@@ -206,11 +198,12 @@
      (hiccup.util/escape-html (:name todo-list))]]])
 
 (defn todo-list-index-html [req todo-lists]
-  (layout req "Productivity Self Delusion Machine"
-          [:h2 "TODO Lists"]
-          (create-todo-list-form)
-          [:ul
-           (map todo-list->list-item todo-lists)]))
+  (layout/application
+    "Productivity Self Delusion Machine"
+    [:h2 "TODO Lists"]
+    (create-todo-list-form)
+    [:ul
+     (map todo-list->list-item todo-lists)]))
 
 (defn todo-list-index [req]
   (let [db (get-in req [:components :db])
@@ -218,20 +211,21 @@
     (todo-list-index-html req todo-lists)))
 
 (defn about [req]
-  (layout req "About"
-          [:p "Imagine a world in which you could write down the things you "
-           "have to do... on a computer. Well, you don't have to imagine it "
-           "any longer! The " [:em "Productivity Self Delusion Machine"]
-           " enables you to "
-           "to write down any task! Need to remember to vote? Make a task. "
-           "What about doing the dishes? Make a task. And the best part, "
-           "you get that feeling of accomplishment just from writing down "
-           "that thing you should be doing right now. That's right, if you "
-           "just keep writing down tasks, you can feel productive without "
-           "having to do anything at all!"]))
+  (layout/application
+    "About"
+    [:p "Imagine a world in which you could write down the things you "
+     "have to do... on a computer. Well, you don't have to imagine it "
+     "any longer! The " [:em "Productivity Self Delusion Machine"]
+     " enables you to "
+     "to write down any task! Need to remember to vote? Make a task. "
+     "What about doing the dishes? Make a task. And the best part, "
+     "you get that feeling of accomplishment just from writing down "
+     "that thing you should be doing right now. That's right, if you "
+     "just keep writing down tasks, you can feel productive without "
+     "having to do anything at all!"]))
 
 (defn not-found [req]
-  (layout req "Not Found!"))
+  (layout/application "Not Found!"))
 
 (def todo-list-routes
   (routes
