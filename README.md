@@ -30,3 +30,23 @@ From the project root, run the following:
 ```
 ./script/test
 ```
+
+## Interactive Development
+
+You cat start up a repl by running the following from the project root:
+
+```
+./script/console
+```
+
+To start the application, execute the following at the repl:
+
+```
+(go)
+```
+
+To reload namespaces and restart the application execute the following:
+
+```
+(reset)
+```

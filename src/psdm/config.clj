@@ -14,13 +14,11 @@
        slurp
        edn/read-string))
 
+(defn build-system []
+  (kosmos/map->system (load-settings)))
+
 (defn start-system []
-  (->> (load-settings)
-       ;; build the components
-       kosmos/map->system
-       ;; start the system, this will add a shutdown hook to stop
-       ;; the system as well
-       kosmos/start!))
+  (kosmos/start! (build-system)))
 
 (defn stop-system []
   (kosmos/stop!))

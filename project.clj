@@ -32,6 +32,7 @@
                  [ch.qos.logback/logback-classic "1.1.6"]
                  ]
   :main ^:skip-aot psdm.core
+  :repl-options {:init-ns psdm.repl}
   :target-path "target/%s"
   :plugins [[lein-cloverage "1.0.6"]]
   :aliases {"db" ["run" "-m" "psdm.migration"]
