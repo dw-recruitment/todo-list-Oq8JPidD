@@ -51,8 +51,16 @@
 
      [:title "Productivity Self Delusion Machine"]]
     [:body
-     [:h1 (hiccup.util/escape-html page-name)]
-     contents
+     [:div {:class "navbar navbar-inverse navbar-fixed-top"
+            :role  "navigation"}
+      [:div {:class "container"}
+       [:div {:class "navbar-header"}
+        [:a {:class "navbar-brand" :href "/"}
+         "Productivity Self Delusion Machine"]]]]
+
+     [:div {:class "container"}
+      ;[:h1 (hiccup.util/escape-html page-name)]
+      contents]
 
      ;; jQuery JS (required by bootstrap)
      (page/include-js "https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js")

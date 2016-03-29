@@ -21,62 +21,87 @@
 (defn todo-list-url [id]
   (str "/" id "/"))
 
-(defn item-css-class [item]
-  (get {:done "done-item"
-        :todo "todo-item"}
-       (:status item)
-       ""))
-
 (def opposite-status {:done :todo
                       :todo :done})
 
-(def toggle-button-label
-  {:todo "done"
-   :done "undo"})
+(defn delete-item-form-id [item]
+  (str "delete_todo_item_form_" (:id item)))
 
-(defn item-doneness-toggle [item]
+(defn doneness-item-form-id [item]
+  (str "doneness_todo_item_form_" (:id item)))
+
+(defn gen-id []
+  (str "genid_"
+       (clojure.string/replace
+         (str (java.util.UUID/randomUUID))
+         "-"
+         "_")))
+
+(defn submit-form-js [form-id]
+  (str "document.getElementById('" form-id "').submit();"))
+
+(defn strikethrough-checkbox [onclick-js checked? & label-content]
+  (let [checkbox-id (gen-id)]
+    [:div {:class "checkbox"}
+     [:input {:class   "strikethrough" :type "checkbox" :id checkbox-id
+              :checked checked?
+              :onclick onclick-js}]
+     [:label {:for checkbox-id}
+      label-content]]))
+
+(defn doneness-item-form [item form-id]
   [:form {:class  "item-toggle"
           :action (todo-list-url (:todo_list_id item))
-          :method "post"}
+          :method "post"
+          :id form-id}
    [:input {:type  "hidden" :name "id"
             :value (:id item)}]
    [:input {:type  "hidden" :name "description"
             :value (:description item)}]
    [:input {:type  "hidden" :name "status"
-            :value (name (opposite-status (:status item)))}]
-   [:input {:type  "submit"
-            :value (toggle-button-label (:status item))}]])
+            :value (name (opposite-status (:status item)))}]])
 
-(defn item-delete-toggle [item]
+(defn delete-item-form [item form-id]
   [:form {:class  "item-toggle"
           :action (todo-list-url (:todo_list_id item))
-          :method "post"}
+          :method "post"
+          :id     form-id}
    [:input {:type  "hidden" :name "_method"
             :value "delete"}]
    [:input {:type  "hidden" :name "id"
-            :value (:id item)}]
-   [:input {:type  "submit"
-            :value "delete"}]])
+            :value (:id item)}]])
 
 (defn item->list-item [item]
-  [:li
-   (item-delete-toggle item)
-   (item-doneness-toggle item)
-   [:span {:class (item-css-class item)}
-    (hiccup.util/escape-html (str (name (:status item)) " -- " (:description item)))]])
+  [:li {:class "list-group-item"}
+   [:span {:class "pull-right action-buttons"}
+    [:a {:href    "#" :class "trash"
+         :onclick (submit-form-js (delete-item-form-id item))}
+     (delete-item-form item (delete-item-form-id item))
+     [:span {:class "glyphicon glyphicon-trash"}]]]
+   (strikethrough-checkbox
+     (submit-form-js (doneness-item-form-id item))
+     (= :done (:status item))
+     (hiccup.util/escape-html (:description item))
+     (doneness-item-form item (doneness-item-form-id item)))])
 
 (defn create-todo-item-form [todo-list-id]
-  [:div
    [:form {:action (todo-list-url todo-list-id) :method "post"}
-    [:input {:type "text" :name "description" :maxlength 140}]
-    [:input {:type "submit" :value "Submit"}]]])
+    [:div {:class "input-group"}
+    [:input {:class "form-control"
+             :type "text"
+             :name "description"
+             :maxlength 100
+             :placeholder "Create a new thing TODO..."
+             :autofocus true}]
+    [:span {:class "input-group-btn"}
+     [:input {:class "btn btn-default" :type "submit" :value "Add Item"}]]]])
 
 (defn index-html [req todo-list items]
   (layout/application
     "Productivity Self Delusion Machine"
     [:h2 (:name todo-list)]
     (create-todo-item-form (:id todo-list))
-    [:ul
+    [:ul {:class "list-group"}
      (map item->list-item items)]))
 
 (defn request->todo-list-id [req]
@@ -162,10 +187,16 @@
                             keywordize-map))
 
 (defn create-todo-list-form []
-  [:div
    [:form {:action "/" :method "post"}
-    [:input {:type "text" :name "name" :maxlength 100}]
-    [:input {:type "submit" :value "Submit"}]]])
+    [:div {:class "input-group"}
+    [:input {:class "form-control"
+             :type "text"
+             :name "name"
+             :maxlength 100
+             :placeholder "Create a new TODO list..."
+             :autofocus true}]
+     [:span {:class "input-group-btn"}
+      [:input {:class "btn btn-default" :type "submit" :value "Add List"}]]]])
 
 (defn todo-list-post-handler [req]
   (let [db (get-in req [:components :db])
@@ -179,20 +210,26 @@
           ;; doing this old school where we reload the whole page on a post.
           (resp/redirect "/" 303)))))
 
-(defn todo-list-delete-toggle [todo-list]
+(defn delete-todo-list-form-id [todo-list]
+  (str "delete_todo_list_form_" (:id todo-list)))
+
+(defn delete-todo-list-form [todo-list form-id]
   [:form {:class  "item-toggle"
           :action "/"
-          :method "post"}
+          :method "post"
+          :id form-id}
    [:input {:type  "hidden" :name "_method"
             :value "delete"}]
    [:input {:type  "hidden" :name "id"
-            :value (:id todo-list)}]
-   [:input {:type  "submit"
-            :value "delete"}]])
+            :value (:id todo-list)}]])
 
 (defn todo-list->list-item [todo-list]
-  [:li
-   (todo-list-delete-toggle todo-list)
+  [:li {:class "list-group-item"}
+   [:span {:class "pull-right action-buttons"}
+    [:a {:href    "#" :class "trash"
+         :onclick (submit-form-js (delete-todo-list-form-id todo-list))}
+     (delete-todo-list-form todo-list (delete-todo-list-form-id todo-list))
+     [:span {:class "glyphicon glyphicon-trash"}]]]
    [:span
     [:a {:href (todo-list-url (:id todo-list))}
      (hiccup.util/escape-html (:name todo-list))]]])
@@ -202,7 +239,7 @@
     "Productivity Self Delusion Machine"
     [:h2 "TODO Lists"]
     (create-todo-list-form)
-    [:ul
+    [:ul {:class "list-group"}
      (map todo-list->list-item todo-lists)]))
 
 (defn todo-list-index [req]
@@ -213,6 +250,7 @@
 (defn about [req]
   (layout/application
     "About"
+    [:h2 "About"]
     [:p "Imagine a world in which you could write down the things you "
      "have to do... on a computer. Well, you don't have to imagine it "
      "any longer! The " [:em "Productivity Self Delusion Machine"]

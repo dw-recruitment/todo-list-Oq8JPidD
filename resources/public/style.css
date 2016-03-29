@@ -8,3 +8,32 @@
 
 .todo-item {
 }
+
+body {
+  padding-top: 50px;
+}
+
+/**
+ Action button styling based on the following:
+
+ http://bootsnipp.com/snippets/featured/admin-lists-panel
+ */
+
+.trash {
+    color: rgb(209, 91, 71);
+}
+
+.strikethrough:checked + label {
+  text-decoration:line-through;
+  color: rgb(128, 144, 160);
+}
+
+.list-group .checkbox {
+  display:inline-block;
+  margin:0px;
+  padding-left: 20px;
+}
+
+.list-group-item .glyphicon {
+  margin-right:5px;
+}
