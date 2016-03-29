@@ -4,5 +4,4 @@
 
 (defn -main
   [& _]
-  (let [system (config/start-system)]
-    (clojure.pprint/pprint system)))
+  (let [system (config/start-system)]))
