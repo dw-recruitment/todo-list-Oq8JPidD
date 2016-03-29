@@ -6,4 +6,4 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 PROJECT_ROOT="$DIR/.."
 
-(cd "$PROJECT_ROOT" && lein clean && lein cljsbuild once && lein db rebuild)
+(cd "$PROJECT_ROOT" && ./script/update)

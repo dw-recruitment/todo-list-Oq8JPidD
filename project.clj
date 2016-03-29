@@ -12,6 +12,12 @@
                  [ragtime "0.5.3"]
                  [prismatic/schema "1.1.0"]
                  [clj-time "0.11.0"]
+
+                 ;; cljs dependencies
+                 [org.clojure/clojurescript "1.7.228" :scope "provided"]
+                 [org.omcljs/om "1.0.0-alpha31"]
+                 #_[cljsjs/bootstrap "3.3.6-0"]
+
                  ;; the logging API
                  [org.slf4j/slf4j-api "1.7.19"]
                  ;; this is an empty commons-logging artifact that will replace
@@ -33,8 +39,12 @@
                  ]
   :main ^:skip-aot psdm.core
   :repl-options {:init-ns psdm.repl}
+  :source-paths ["src" "src-cljs"]
+  :test-paths ["test"]
   :target-path "target/%s"
-  :plugins [[lein-cloverage "1.0.6"]]
+  :clean-targets ^{:protect false} [:target-path :compile-path "resources/public/js/compiled"]
+  :plugins [[lein-cloverage "1.0.6"]
+            [lein-cljsbuild "1.1.1"]]
   :aliases {"db" ["run" "-m" "psdm.migration"]
             "db-manager" ["run" "-m" "org.hsqldb.util.DatabaseManagerSwing"
                           "--url" "jdbc:hsqldb:file:target/localdatabase"
@@ -42,5 +52,13 @@
   ;; The version99 repo we need for an empty commons-logging artifact. This will
   ;; help us deal with the nightmare that is logging in java.
   :repositories [["version99" "http://version99.qos.ch/"]]
+  :cljsbuild {:builds
+              {:app
+               {:source-paths ["src-cljs"]
+                :compiler {:main psdm-client.core
+                           :asset-path "/js/compiled/out"
+                           :output-to "resources/public/js/compiled/app_main.js"
+                           :output-dir "resources/public/js/compiled/out"
+                           :source-map-timestamp true}}}}
   :profiles {:uberjar {:aot :all}
              :dev     {:dependencies [[ring/ring-mock "0.3.0"]]}})
