@@ -7,6 +7,17 @@ This project makes use of GitHub's [Scripts To Rule Them All]
 to provide a consistent interface for working with this project irrespective of
 the build tools it uses under the hood.
 
+## Requirements
+
+- Leiningen (>= 2.6.1)
+- Java (>= 1.8)
+
+### Tested with the following browsers
+
+- Chrome 49
+- Firefox 45
+- Safari 8
+
 ## Setup
 
 After cloning the repository, run the following from the project root:
