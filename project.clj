@@ -8,6 +8,7 @@
                  [kosmos/kosmos-hsqldb-server "0.0.1"]
                  [kosmos/kosmos-hikari "0.0.1"]
                  [ring/ring-devel "1.4.0"]
+                 [fogus/ring-edn "0.3.0"]
                  [honeysql "0.6.3"]
                  [ragtime "0.5.3"]
                  [prismatic/schema "1.1.0"]
@@ -16,7 +17,6 @@
                  ;; cljs dependencies
                  [org.clojure/clojurescript "1.7.228" :scope "provided"]
                  [org.omcljs/om "1.0.0-alpha31"]
-                 #_[cljsjs/bootstrap "3.3.6-0"]
 
                  ;; the logging API
                  [org.slf4j/slf4j-api "1.7.19"]

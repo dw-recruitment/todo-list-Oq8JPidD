@@ -2,6 +2,7 @@
   (:require [hiccup.core :refer :all]
             [hiccup.page :refer [html5 include-css]]
             [hiccup.util]
+            [psdm.api :as api]
             [psdm.config :as config]
             [psdm.items :as items]
             [psdm.todo-list :as todo-list]
@@ -9,14 +10,15 @@
             [schema.core :as s]
             [schema.coerce :as coerce]
             [schema.utils :as u]
-            [compojure.core :refer [routes context GET POST DELETE]]
+            [compojure.core :refer [routes context GET POST DELETE PUT]]
             [compojure.route :as route]
             [clojure.tools.logging :as log]
             [ring.util.response :as resp]
             [ring.middleware.content-type :as content-type]
             [ring.middleware.resource :as resource]
             [ring.middleware.reload :as reload]
-            [ring.middleware.params :as params]))
+            [ring.middleware.params :as params]
+            [ring.middleware.edn :as ring-edn]))
 
 (defn todo-list-url [id]
   (str "/" id "/"))
@@ -111,7 +113,8 @@
     todo-list-id))
 
 (defn index [req]
-  (let [db (get-in req [:components :db])
+  (layout/application)
+  #_(let [db (get-in req [:components :db])
         todo-list-id (request->todo-list-id req)
         todo-list (todo-list/find-by-id db todo-list-id)
         items (items/find-all-for-list db todo-list-id)]
@@ -277,12 +280,23 @@
     (POST "/" _ todo-items-post-handler)
     (DELETE "/" _ todo-items-delete-handler)))
 
+(def api-routes
+  (routes
+    (GET "/api/" _ api/list-todo-lists)
+    (POST "/api/" _ api/post-todo-list)
+
+    (GET "/api/:todo-list-id" _ api/get-todo-list)
+    (POST "/api/:todo-list-id" _ api/post-todo-item)
+    (DELETE "/api/:todo-list-id" _ api/delete-todo-list)
+
+    (PUT "/api/:todo-list-id/:todo-item-id" _ api/put-todo-item)
+    (DELETE "/api/:todo-list-id/:todo-item-id" _ api/delete-todo-item)))
+
 (def handler
   (routes
+    (GET "/" _ index)
     (GET "/about" _ about)
-    todo-list-routes
-    (context "/:todo-list-id" [todo-list-id]
-      (todo-items-routes todo-list-id))
+    api-routes
     (route/not-found not-found)))
 
 (defn components-request [request]
@@ -300,6 +314,7 @@
                            (resource/wrap-resource "public")
                            content-type/wrap-content-type
                            params/wrap-params
+                           ring-edn/wrap-edn-params
                            wrap-components)]
            (if (= "development" config/*env*)
              (reload/wrap-reload handler)

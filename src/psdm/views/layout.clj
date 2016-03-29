@@ -18,7 +18,7 @@
               :integrity integrity
               :crossorigin crossorigin}]))
 
-(defn application [page-name & contents]
+(defn application [& _]
   ;; Lots borrowed from: http://getbootstrap.com/getting-started/#template
   (page/html5
     {:lang "en"}
@@ -59,8 +59,8 @@
          "Productivity Self Delusion Machine"]]]]
 
      [:div {:class "container"}
-      ;[:h1 (hiccup.util/escape-html page-name)]
-      contents]
+
+      [:div {:class "container" :id "om-root"}]]
 
      ;; jQuery JS (required by bootstrap)
      (page/include-js "https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js")

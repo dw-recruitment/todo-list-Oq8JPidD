@@ -8,7 +8,8 @@
             [ring.mock.request :as mock]
             [clojure.string :as str]
             [psdm.test-helper :as helper]
-            [psdm.todo-list :as todo-list])
+            [psdm.todo-list :as todo-list]
+            [clojure.edn :as edn])
   (:import [java.util UUID]))
 
 (helper/system-fixture)
@@ -35,7 +36,7 @@
               content-type)
           "image/gif"))))
 
-(deftest test-todo-items-form
+#_(deftest test-todo-items-form
   (let [todo-list (todo-list/create (helper/get-db)
                                     {:name "Test List"})
         todo-list-url (todo-list-url (:id todo-list))
@@ -68,7 +69,7 @@
     (testing "it returns a 400 if the payload is invalid"
       (is (= 400 (:status resp))))))
 
-(deftest test-delete-todo-item
+#_(deftest test-delete-todo-item
   (let [todo-list (todo-list/create (helper/get-db)
                                     {:name "Test List"})
         item (items/create (helper/get-db)
@@ -87,7 +88,7 @@
     (testing "it deletes the indicated todo item"
       (is (not (items/find-by-id (helper/get-db) (:id item)))))))
 
-(deftest test-todo-item-form-params
+#_(deftest test-todo-item-form-params
   (let [form-params {"created_at"  "should be ignored"
                      "description" "a description"
                      "status"      "todo"}]
@@ -100,7 +101,7 @@
         (is (= :todo (:status parsed-value)))
         (is (= 5 (:id parsed-value)))))))
 
-(deftest test-create-todo-list
+#_(deftest test-create-todo-list
   (let [list-name (str (UUID/randomUUID))
         resp (app (mock/request :post "/" {:name list-name}))]
     (testing "it returns a 303 to redirect the browser"
@@ -113,7 +114,7 @@
                     (filter #{list-name})
                     count))))))
 
-(deftest test-delete-todo-list
+#_(deftest test-delete-todo-list
   (let [todo-list (todo-list/create (helper/get-db) {:name "Bob's Todo List"})
         resp (app (mock/request :post "/"
                                 {"_method" "delete"
@@ -124,3 +125,86 @@
       (is (= "/" (get-in resp [:headers "Location"]))))
     (testing "it deletes the todo list"
       (is (not (todo-list/find-by-id (helper/get-db) (:id todo-list)))))))
+
+(deftest test-api-list-todo-lists
+  (let [todo-list (todo-list/create (helper/get-db) {:name "Bob's Todo List"})
+        resp (app (mock/request :get "/api/"))]
+    (testing "it returns a success status"
+      (is (= 200 (:status resp))))
+    (let [body (edn/read-string (:body resp))]
+      (testing "it returns edn representing a list of todo lists"
+        (is (coll? body))
+        (is (= 1 (count body)))
+        (is (= (:name todo-list) (first (map :name body)))))
+      (testing "it contains self links"
+        (is (= (str "/api/" (:id todo-list)) (first (map :self body))))))))
+
+(deftest test-api-delete-todo-list
+  (let [todo-list (todo-list/create (helper/get-db) {:name "Bob's Todo List"})
+        resp (app (mock/request :delete (str "/api/" (:id todo-list))))]
+    (testing "it returns success status"
+      (is (= 204 (:status resp))))
+    (testing "it deletes the todo-list"
+      (is (not (todo-list/find-by-id (helper/get-db) (:id todo-list)))))))
+
+(deftest test-api-get-todo-list
+  (let [todo-list (todo-list/create (helper/get-db)
+                                    {:name "Test List"})
+        item (items/create (helper/get-db)
+                           {:description  "descriptive"
+                            :status       :todo
+                            :todo_list_id (:id todo-list)})
+        resp (app (mock/request :get (str "/api/" (:id todo-list))))]
+    (testing "it returns success status"
+      (is (= 200 (:status resp))))
+    (let [body (edn/read-string (:body resp))]
+      (is (= (:name todo-list) (:name body)))
+      (is (coll? (:items body)))
+      (is (= (:id item) (first (map :id (:items body)))))
+      (is (= (str "/api/" (:id todo-list) "/" (:id item))
+             (first (map :self (:items body))))))))
+
+(deftest test-api-put-todo-item
+  (let [todo-list (todo-list/create (helper/get-db)
+                                    {:name "Test List"})
+        item (items/create (helper/get-db)
+                           {:description  "descriptive"
+                            :status       :todo
+                            :todo_list_id (:id todo-list)})
+        item-uri (str "/api/" (:id todo-list) "/" (:id item))
+        resp (app (-> (mock/request :put item-uri)
+                      (mock/body
+                        (pr-str {:description "descriptive"
+                                 :self        item-uri
+                                 :status      :done}))
+                      (mock/content-type "application/edn")))
+        body (edn/read-string (:body resp))]
+    (is (= 200 (:status resp)))
+    (is (= (:id item) (:id body)))
+    (is (= :done (:status body)))
+    (is (= :done (:status (items/find-by-id (helper/get-db) (:id item)))))))
+
+(deftest test-api-create-todo-item
+  (let [todo-list (todo-list/create (helper/get-db)
+                                    {:name "Test List"})
+        todo-list-uri (str "/api/" (:id todo-list))
+        resp (app (-> (mock/request :post todo-list-uri)
+                      (mock/body
+                        (pr-str {:description "an item"}))
+                      (mock/content-type "application/edn")))
+        body (edn/read-string (:body resp))]
+    (is (= 201 (:status resp)))
+    (is (= "an item" (:description body)))
+    (is (:self body))))
+
+(deftest test-api-delete-todo-item
+  (let [todo-list (todo-list/create (helper/get-db)
+                                    {:name "Test List"})
+        item (items/create (helper/get-db)
+                           {:description  "descriptive"
+                            :status       :todo
+                            :todo_list_id (:id todo-list)})
+        item-uri (str "/api/" (:id todo-list) "/" (:id item))
+        resp (app (mock/request :delete item-uri))]
+    (is (= 204 (:status resp)))
+    (is (not (items/find-by-id (helper/get-db) (:id item))))))
